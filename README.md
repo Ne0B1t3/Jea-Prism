@@ -66,13 +66,13 @@ session) and you get the full dump: every property, in every bucket
 it came off the wire:
 
 ```bash
-JEA> ? Get-Content C:\users\admin.aws\credentials
+JEA> ? Get-Content C:\users\admin\file.txt
 [DEBUG] 3 object(s) received:
 [DEBUG #0]
 ...
     property_sets : ['[default]']
     extended_properties:
-        PSPath = 'C:\users\admin\.aws\credentials'
+        PSPath = 'C:\users\admin\file.txt'
 ...
 [DEBUG #1]
 ...
@@ -81,7 +81,7 @@ JEA> ? Get-Content C:\users\admin.aws\credentials
 ## Installation
 
 ```bash
-git clone https://github.com/Ne0b1t3/jea-prism
+git clone https://github.com/Ne0B1t3/Jea-Prism
 cd jea-prism
 pip install -r requirements.txt
 pip install -e .
