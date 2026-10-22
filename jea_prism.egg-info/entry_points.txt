@@ -1,2 +1,0 @@
-[console_scripts]
-jea-prism = jea_prism.cli:main
