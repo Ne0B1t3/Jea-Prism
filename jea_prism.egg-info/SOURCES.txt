@@ -1,0 +1,16 @@
+LICENSE
+README.md
+setup.py
+jea_prism/__init__.py
+jea_prism/cli.py
+jea_prism/client.py
+jea_prism/enum_cmdlets.py
+jea_prism/modes.py
+jea_prism/parsing.py
+jea_prism/shell.py
+jea_prism.egg-info/PKG-INFO
+jea_prism.egg-info/SOURCES.txt
+jea_prism.egg-info/dependency_links.txt
+jea_prism.egg-info/entry_points.txt
+jea_prism.egg-info/requires.txt
+jea_prism.egg-info/top_level.txt
