@@ -69,10 +69,10 @@ def connect(
     auth: str = "negotiate",
     ccache: typing.Optional[str] = None,
     negotiate_delegate: bool = False,
+    nt_hash: typing.Optional[str] = None,   
+    lm_hash: typing.Optional[str] = None,   
 ) -> RunspacePool:
     if ccache:
-        # Must be set before WSMan is constructed, so the underlying
-        # Kerberos library picks up the ticket cache on first use.
         os.environ["KRB5CCNAME"] = ccache
 
     wsman_kwargs: dict = {}
@@ -80,15 +80,22 @@ def connect(
         wsman_kwargs["negotiate_delegate"] = negotiate_delegate
 
     wsman = WSMan(
-        server=host,
-        port=port,
-        username=username,
-        password=password,
-        ssl=ssl,
-        cert_validation=cert_validation,
-        auth=auth,
-        **wsman_kwargs,
+        server=host, port=port, username=username, password=password,
+        ssl=ssl, cert_validation=cert_validation, auth=auth, **wsman_kwargs,
     )
+
+    # NT hash authentication
+    if nt_hash:
+        import spnego
+        # pypsrp builds the requests.Session + auth object lazily on first
+        # send(); force it now so we can swap the credential before any
+        # auth handshake happens.
+        wsman.transport.session = wsman.transport._build_session()
+        wsman.transport.session.auth.username = spnego.NTLMHash(
+            username=username, nt_hash=nt_hash, lm_hash=lm_hash,
+        )
+        wsman.transport.session.auth.password = None
+
     kw = {"configuration_name": configuration_name} if configuration_name else {}
     pool = RunspacePool(wsman, **kw)
     pool.open()

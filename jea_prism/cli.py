@@ -32,7 +32,8 @@ def _common_args(p: argparse.ArgumentParser):
     p.add_argument(
         "--auth", default="negotiate",
         choices=["negotiate", "ntlm", "kerberos", "basic", "credssp"],
-        help="Authentication protocol. Use 'kerberos' with --ccache for ticket-based auth.",
+        help="Authentication protocol. Use 'kerberos' with --ccache for ticket-based auth, "
+             "or 'ntlm' with --hashes/--nt-hash for pass-the-hash.",
     )
     p.add_argument(
         "--ccache",
@@ -45,10 +46,43 @@ def _common_args(p: argparse.ArgumentParser):
         help="Delegate the Kerberos ticket to a second hop (credential delegation). "
              "Only meaningful with --auth kerberos.",
     )
+    p.add_argument(
+        "--hashes",
+        help="NTLM hashes in impacket/secretsdump format: LMHASH:NTHASH, or just "
+             "NTHASH (empty LM is assumed). Requires --auth ntlm.",
+    )
+    p.add_argument(
+        "--nt-hash",
+        help="NTLM NT hash only (32 hex chars). Requires --auth ntlm.",
+    )
     p.add_argument("--debug", action="store_true")
 
 
+def _parse_hashes(args) -> tuple:
+    """Return (lm_hash, nt_hash) from --hashes / --nt-hash, or (None, None)."""
+    lm_hash = None
+    nt_hash = None
+
+    if args.hashes:
+        if ":" in args.hashes:
+            lm_hash, nt_hash = args.hashes.split(":", 1)
+            if not lm_hash or lm_hash == "aad3b435b51404eeaad3b435b51404ee":
+                lm_hash = None
+        else:
+            nt_hash = args.hashes
+        nt_hash = nt_hash or None
+
+    if args.nt_hash:
+        nt_hash = args.nt_hash
+
+    return lm_hash, nt_hash
+
+
 def _resolve_password(args) -> str:
+    # Pass-the-hash: no password is involved at all.
+    if args.hashes or args.nt_hash:
+        return None
+
     if args.password:
         return args.password
     env_pw = os.environ.get("JEA_PRISM_PASSWORD")
@@ -91,6 +125,7 @@ def main():
         epilog=(
             "Examples:\n"
             '  jea-prism run <host> -u <user> -p <pass> "Get-Process"\n'
+            '  jea-prism run <host> -u <user> --auth ntlm --nt-hash <NTHASH> "Get-Process"\n'
             '  jea-prism run <host> -u <user> -p <pass> "Get-Process | Select-Object -First 5"\n'
             "\n"
             "Only whitelisted cmdlets of the JEA configuration can be used."
@@ -112,9 +147,23 @@ def main():
     _common_args(p_enum)
 
     args = parser.parse_args()
+
+    # Pass-the-hash
+    if (args.hashes or args.nt_hash) and args.auth != "ntlm":
+        parser.error("--hashes/--nt-hash require --auth ntlm (Kerberos uses tickets, not NTLM hashes).")
+    if args.hashes and args.nt_hash:
+        parser.error("Use either --hashes or --nt-hash, not both.")
+    if args.ccache and args.auth != "kerberos":
+        parser.error("--ccache requires --auth kerberos.")
+    if args.negotiate_delegate and args.auth != "kerberos":
+        parser.error("--negotiate-delegate requires --auth kerberos.")
+
+    lm_hash, nt_hash = _parse_hashes(args)
     password = _resolve_password(args)
 
     print(f"[*] Connecting to {args.host}:{args.port} as '{args.username}' (auth={args.auth})...")
+    if nt_hash:
+        print("[*] Using pass-the-hash (NTLM).")
     try:
         pool = client.connect(
             host=args.host,
@@ -127,6 +176,8 @@ def main():
             auth=args.auth,
             ccache=args.ccache,
             negotiate_delegate=args.negotiate_delegate,
+            nt_hash=nt_hash,
+            lm_hash=lm_hash,
         )
     except Exception as exc:
         sys.exit(f"[!] Connection error: {exc}")
