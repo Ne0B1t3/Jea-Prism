@@ -7,7 +7,7 @@ setup(
     author="Ne0b1t3",
     url="https://github.com/Ne0b1t3/jea-prism",
     packages=find_packages(),
-    install_requires=["pypsrp>=0.8.0","spnego>=0.9.0"],
+    install_requires=["pypsrp>=0.8.0","pyspnego>=0.7.0"],
     entry_points={
         "console_scripts": [
             "jea-prism=jea_prism.cli:main",
