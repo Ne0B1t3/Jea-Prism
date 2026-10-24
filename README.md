@@ -82,8 +82,7 @@ JEA> ? Get-Content C:\users\admin\file.txt
 
 ```bash
 git clone https://github.com/Ne0B1t3/Jea-Prism
-cd jea-prism
-pip install -r requirements.txt
+cd Jea-Prism
 pip install -e .
 ```
 
@@ -120,6 +119,22 @@ jea-prism connect 10.10.10.10 -u 'pepe@dc01.lab.local' \
 `--username` is still required even with a ticket, pypsrp needs it to build
 the server SPN, but its value isn't used for authentication; the ticket is.
 Add `--negotiate-delegate` if you need credential delegation to a second hop.
+
+### Pass-the-Hash (NTLM) authentication
+
+If you have an NTLM hash for the target account (e.g. from `secretsdump`, `mimikatz`, or `impacket`), you can authenticate without needing the plaintext password.
+
+```bash
+# NT hash only
+jea-prism connect 10.10.10.10 -u administrator \
+    --auth ntlm \
+    --nt-hash 32ed87bdb5fdc5e9cba88547376818d4
+
+# impacket/secretsdump LM:NT format (empty LM is ignored automatically)
+jea-prism connect 10.10.10.10 -u administrator \
+    --auth ntlm \
+    --hashes aad3b435b51404eeaad3b435b51404ee:32ed87bdb5fdc5e9cba88547376818d4
+```
 
 ## How the execution backend is chosen
 
